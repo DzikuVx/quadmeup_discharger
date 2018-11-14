@@ -1,9 +1,14 @@
 #include "Arduino.h"
+#include "pid.h"
 
 #define ADC_PIN A0
 #define OUTPUT_PIN 10
 #define LOAD_RESISTANCE 10
-#define DELAY 100
+#define DELAY 500
+
+#define TARGET_CURRENT 0.2f
+
+PIDController pidController(5, 1, 0, 0);
 
 int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 {
@@ -44,7 +49,9 @@ void setup()
     digitalWrite(OUTPUT_PIN, LOW);
     Serial.begin(115200);
 
-    setPower(255);
+    pidController.setItermProperties(-20, 20);
+    pidController.setSetpoint(TARGET_CURRENT);
+    setPower(40);
 }
 
 float joules = 0;
@@ -69,19 +76,33 @@ void loop()
 
     float voltage = getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f, 3235, 1000);
     float current = getPowerFactor() * voltage / LOAD_RESISTANCE;
+
+    float requitedR = voltage / TARGET_CURRENT;
+    float ff = (255 * LOAD_RESISTANCE / requitedR) / TARGET_CURRENT; 
+    pidController.setFfGain(ff);
+    int outputCandidate = pidController.compute(current, millis());
+
     joules += (voltage * current) * (DELAY / 1000.f);
 
-    // if (voltage < 4.00f) {
-    //     stopPower();
-    // } else {
-    //     setPower(255);
-    // }
+    setPower(outputCandidate);
+
+    if (voltage < 10.5f) {
+        stopPower();
+    }
 
     Serial.print(voltage);
     Serial.print(" : ");
     Serial.print(current);
     Serial.print(" : ");
     Serial.print(joules);
+    Serial.print(" : ");
+    Serial.print(outputCandidate);
+    Serial.print(" : ");
+    Serial.print(pidController.getIterm());
+    Serial.print(" : ");
+    Serial.print(ff);
+    Serial.print(" : ");
+    Serial.print(requitedR);
     Serial.println(" : ");
     delay(DELAY);
 }

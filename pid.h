@@ -6,13 +6,14 @@ class PIDController
 {
   public:
     PIDController(float pGain, float iGain, float dGain, float ffGain);
-    int compute(int measurement, unsigned long timestamp);
-    void setSetpoint(int setpoint);
+    int compute(float measurement, unsigned long timestamp);
+    void setSetpoint(float setpoint);
     void resetIterm();
     float getIterm();
     float getDterm();
     void setProperties(int minOutput, int maxOutput);
-    void setItermProperties(int minIterm, int maxIterm);
+    void setItermProperties(float minIterm, float maxIterm);
+    void setFfGain(float ffGain);
 
   private:
     float _pGain;
@@ -22,14 +23,14 @@ class PIDController
     float _iTerm;
     float _dTerm;
     float _ffTerm;
-    int _error;
-    int _minIterm;
-    int _maxIterm;
-    int _setpoint;
+    float _error;
+    float _minIterm;
+    float _maxIterm;
+    float _setpoint;
     int _min;
     int _max;
-    int _previousError;
-    int _previousMeasurement;
+    float _previousError;
+    float _previousMeasurement;
     unsigned long _prevExecutionMillis;
 };
 

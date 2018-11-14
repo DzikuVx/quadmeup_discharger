@@ -22,21 +22,26 @@ void PIDController::setProperties(int minOutput, int maxOutput)
     _max = maxOutput;
 }
 
-void PIDController::setItermProperties(int minIterm, int maxIterm) 
+void PIDController::setItermProperties(float minIterm, float maxIterm) 
 {
     _minIterm = minIterm;
     _maxIterm = maxIterm;
 }
 
-void PIDController::setSetpoint(int setpoint) 
+void PIDController::setSetpoint(float setpoint) 
 {
     _setpoint = setpoint;
 }
 
-int PIDController::compute(int measurement, unsigned long timestamp)
+void PIDController::setFfGain(float ffGain) 
+{
+    _ffGain = ffGain;
+}
+
+int PIDController::compute(float measurement, unsigned long timestamp)
 {
     int output = 0;
-    int error = _setpoint - measurement;
+    float error = _setpoint - measurement;
 
     //Do not run update if pid loop is called too often
     if (timestamp - _prevExecutionMillis < 1000) {
@@ -55,7 +60,7 @@ int PIDController::compute(int measurement, unsigned long timestamp)
         output += _dTerm;
 
         //ffTerm
-        _ffTerm = (float) measurement * _ffGain;
+        _ffTerm = (float) _setpoint * _ffGain;
         output += _ffTerm;
     }
 
