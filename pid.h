@@ -11,6 +11,7 @@ class PIDController
     void resetIterm();
     float getIterm();
     float getDterm();
+    float getPterm();
     void setProperties(int minOutput, int maxOutput);
     void setItermProperties(float minIterm, float maxIterm);
     void setFfGain(float ffGain);
@@ -20,6 +21,7 @@ class PIDController
     float _iGain;
     float _dGain;
     float _ffGain;    
+    float _pTerm;
     float _iTerm;
     float _dTerm;
     float _ffTerm;

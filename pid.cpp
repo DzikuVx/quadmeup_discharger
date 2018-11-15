@@ -48,7 +48,8 @@ int PIDController::compute(float measurement, unsigned long timestamp)
         float dT = (timestamp - _prevExecutionMillis) / 1000.0f;
 
         //pTerm
-        output += (int) (error * _pGain);
+        _pTerm = error * _pGain;
+        output += (int) _pTerm;
 
         //Apply and constrain iTerm
         _iTerm += error * _iGain * dT;
@@ -73,6 +74,10 @@ int PIDController::compute(float measurement, unsigned long timestamp)
 
 void PIDController::resetIterm() {
     _iTerm = 0;
+}
+
+float PIDController::getPterm() {
+    return _pTerm;
 }
 
 float PIDController::getIterm() {
