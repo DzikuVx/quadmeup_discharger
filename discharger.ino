@@ -95,12 +95,11 @@ float getFilteredV() {
         filteredAdc = adcOutput;
     }
 
-    filteredAdc = smooth(adcOutput, 0.91, filteredAdc);
+    filteredAdc = smooth(adcOutput, 0.95, filteredAdc);
 
     return getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f, 3235, 1000);
 }
 
-// uint32_t nextLooptime
 
 enum settingPages {
     SETTING_PAGE_CURRENT = 0,
@@ -108,7 +107,14 @@ enum settingPages {
     SETTING_PAGE_LAST
 };
 
+enum runningStates {
+    RUNNING_STATE_IDLE = 0,
+    RUNNING_STATE_DISCHARGE,
+    RUNNING_STATE_LAST
+};
+
 int currentSettingPage = SETTING_PAGE_CURRENT;
+int currentRunningState = RUNNING_STATE_IDLE;
 
 void loop()
 {
@@ -157,6 +163,13 @@ void loop()
         }
     }
 
+    if (button3.getState() == TACTILE_STATE_LONG_PRESS) {
+        currentRunningState++;
+        if (currentRunningState == RUNNING_STATE_LAST) {
+            currentRunningState = RUNNING_STATE_IDLE;
+        }
+    }
+
     static uint32_t nextPidTask = millis();
 
     if (millis() > nextPidTask) {
@@ -172,10 +185,10 @@ void loop()
 
         joules += (voltage * current) * (DELAY / 1000.f);
 
-        setPower(outputCandidate);
-
-        if (voltage < cutoffVoltage) {
+        if (currentRunningState == RUNNING_STATE_IDLE || voltage < cutoffVoltage) {
             stopPower();
+        } else {
+            setPower(outputCandidate);
         }
 
         nextPidTask = millis() + DELAY;
@@ -185,12 +198,9 @@ void loop()
 
     if (millis() > nextSerialTask) {
 
-        Serial.print(outputPower);
-        Serial.print(" : ");
-        Serial.print(pidController.getIterm());
-        Serial.print(" : ");
-        Serial.print(pidController.getPterm());
-        Serial.println(" : ");
+        // Serial.print(voltageAdc.getRawValue());
+        // Serial.print(" : ");
+        // Serial.println(voltageAdc.getValue());
 
         nextSerialTask = millis() + 200;
     }
@@ -206,9 +216,17 @@ void loop()
         display.print("Vin: ");
         display.print(voltage);
 
-        display.setCursor(0, 12);
+        display.setCursor(64, 0);
         display.print("I: ");
         display.print(current);
+
+        if (currentRunningState == RUNNING_STATE_IDLE) {
+            display.setCursor(48, 12);
+            display.print("IDLE");
+        } else if (currentRunningState == RUNNING_STATE_DISCHARGE) {
+            display.setCursor(16, 12);
+            display.print("-- DISCHARGE --");
+        }
 
         if (currentSettingPage == SETTING_PAGE_CURRENT) {
             display.setCursor(0, 54);
