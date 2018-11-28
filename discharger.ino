@@ -3,6 +3,8 @@
 #include <Adafruit_SSD1306.h>
 #include <Wire.h>
 #include "tactile.h"
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 #define ADC_PIN A0
 #define OUTPUT_PIN 10
@@ -11,6 +13,7 @@
 #define MAX_CURRENT MAX_VOLTAGE / LOAD_RESISTANCE
 #define DELAY 500
 #define OLED_RESET 4
+#define ONE_WIRE_BUS 2
 
 #define TARGET_CURRENT 0.2f
 
@@ -21,6 +24,9 @@ Tactile button0(8);  // left
 Tactile button1(9);  // right
 Tactile button2(7);  // setting
 Tactile button3(6);  // Start/Stop
+
+OneWire oneWire(ONE_WIRE_BUS); 
+DallasTemperature sensors(&oneWire);
 
 int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 {
@@ -120,6 +126,7 @@ enum runningStates {
 
 int currentSettingPage = SETTING_PAGE_CURRENT;
 int currentRunningState = RUNNING_STATE_IDLE;
+float currentTemperature = 0.0f;
 
 void loop()
 {
@@ -178,8 +185,18 @@ void loop()
     }
 
     static uint32_t nextPidTask = millis();
+    static uint32_t nextTemperatureTask = millis();
+
+    if (millis() > nextTemperatureTask) {
+        sensors.requestTemperatures();
+        currentTemperature = sensors.getTempCByIndex(0);
+
+        nextTemperatureTask = millis() + 1000;
+    }
 
     if (millis() > nextPidTask) {
+
+        sensors.requestTemperatures();
 
         voltage = getFilteredV();
         current = getPowerFactor() * voltage / LOAD_RESISTANCE;
@@ -227,11 +244,15 @@ void loop()
         display.print("I: ");
         display.print(current);
 
+        display.setCursor(0, 12);
+        display.print("T: ");
+        display.print(currentTemperature);
+
         if (currentRunningState == RUNNING_STATE_IDLE) {
-            display.setCursor(48, 12);
+            display.setCursor(48, 24);
             display.print("IDLE");
         } else if (currentRunningState == RUNNING_STATE_DISCHARGE) {
-            display.setCursor(16, 12);
+            display.setCursor(16, 24);
             display.print("-- DISCHARGE --");
         }
 
