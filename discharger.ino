@@ -86,7 +86,9 @@ float getVin(float vout, float r1, float r2) {
     return (vout * (r1 + r2)) / r2;
 }
 
-float getFilteredV() {
+float currentVoltage = 0.0f;
+
+void processVolatge() {
     static int32_t filteredAdc = -1;
     uint32_t adcOutput = analogRead(ADC_PIN);
 
@@ -95,11 +97,14 @@ float getFilteredV() {
         filteredAdc = adcOutput;
     }
 
-    filteredAdc = smooth(adcOutput, 0.95, filteredAdc);
+    filteredAdc = smooth(adcOutput, 0.99, filteredAdc);
 
-    return getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f, 3235, 1000);
+    currentVoltage = getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f, 3150, 1000);
 }
 
+float getFilteredV() {
+    return currentVoltage;
+}
 
 enum settingPages {
     SETTING_PAGE_CURRENT = 0,
@@ -118,6 +123,8 @@ int currentRunningState = RUNNING_STATE_IDLE;
 
 void loop()
 {
+    processVolatge();
+
     button0.loop();
     button1.loop();
     button2.loop();
