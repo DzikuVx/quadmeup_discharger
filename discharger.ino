@@ -6,7 +6,9 @@
 
 #define ADC_PIN A0
 #define OUTPUT_PIN 10
-#define LOAD_RESISTANCE 10
+#define LOAD_RESISTANCE 2.5f
+#define MAX_VOLTAGE 20.0f
+#define MAX_CURRENT MAX_VOLTAGE / LOAD_RESISTANCE
 #define DELAY 500
 #define OLED_RESET 4
 
@@ -15,9 +17,10 @@
 PIDController pidController(15, 2, 0, 0);
 Adafruit_SSD1306 display(OLED_RESET);
 
-Tactile button0(8);  
-Tactile button1(9);
-Tactile button2(7);
+Tactile button0(8);  // left
+Tactile button1(9);  // right
+Tactile button2(7);  // setting
+Tactile button3(6);  // Start/Stop
 
 int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 {
@@ -36,7 +39,8 @@ int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 }
 
 uint8_t outputPower = 0;
-float targetCurrent = 0.0f; //We begin with target o 0A
+float targetCurrent = 0.2f; //We begin with target o 0A
+float cutoffVoltage = 3.0f;
 
 void setPower(uint8_t power) {
     outputPower = power;
@@ -57,6 +61,8 @@ void setup()
     button0.start();
     button1.start();
     button2.start();
+
+    button3.start();
 
     pinMode(ADC_PIN, INPUT);
     pinMode(OUTPUT_PIN, OUTPUT);
@@ -96,29 +102,58 @@ float getFilteredV() {
 
 // uint32_t nextLooptime
 
+enum settingPages {
+    SETTING_PAGE_CURRENT = 0,
+    SETTING_PAGE_CUTOFF,
+    SETTING_PAGE_LAST
+};
+
+int currentSettingPage = SETTING_PAGE_CURRENT;
+
 void loop()
 {
     button0.loop();
     button1.loop();
     button2.loop();
+    button3.loop();
 
     static float voltage = 0;
     static float current = 0;
     static float requitedR = 0;
 
     if (button0.getState() == TACTILE_STATE_SHORT_PRESS) {
-        targetCurrent -= 0.1f;
 
-        if (targetCurrent < 0) {
-            targetCurrent = 0;
+        if (currentSettingPage == SETTING_PAGE_CURRENT) {
+            targetCurrent -= 0.1f;
+            if (targetCurrent < 0) {
+                targetCurrent = 0;
+            }
+        } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
+            cutoffVoltage -= 0.1f;
+            if (cutoffVoltage < 0.5) {
+                cutoffVoltage = 0.5;
+            }
         }
     }
 
     if (button1.getState() == TACTILE_STATE_SHORT_PRESS) {
-        targetCurrent += 0.1f;
+        if (currentSettingPage == SETTING_PAGE_CURRENT) {
+            targetCurrent += 0.1f;
+            if (targetCurrent > MAX_CURRENT) {
+                targetCurrent = MAX_CURRENT;
+            }
+        } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
+            cutoffVoltage += 0.1f;
+            if (cutoffVoltage > MAX_VOLTAGE) {
+                cutoffVoltage = MAX_VOLTAGE;
+            }
+        }
+    }
 
-        if (targetCurrent > 2.0f) {
-            targetCurrent = 2.0f;
+    if (button2.getState() == TACTILE_STATE_SHORT_PRESS) {
+        currentSettingPage++;
+        if (currentSettingPage == SETTING_PAGE_LAST) {
+            currentSettingPage = SETTING_PAGE_CURRENT;
         }
     }
 
@@ -139,7 +174,7 @@ void loop()
 
         setPower(outputCandidate);
 
-        if (voltage < 10.5f) {
+        if (voltage < cutoffVoltage) {
             stopPower();
         }
 
@@ -160,22 +195,6 @@ void loop()
         nextSerialTask = millis() + 200;
     }
 
-    // Serial.print(voltage);
-    // Serial.print(" : ");
-    // Serial.print(current);
-    // Serial.print(" : ");
-    // Serial.print(joules);
-    // Serial.print(" : ");
-    // Serial.print(outputCandidate);
-    // Serial.print(" : ");
-    // Serial.print(pidController.getIterm());
-    // Serial.print(" : ");
-    // Serial.print(ff);
-    // Serial.print(" : ");
-    // Serial.print(requitedR);
-    // Serial.println(" : ");
-    // delay(DELAY);
-
     static uint32_t nextOledTask = millis();
 
     if (millis() > nextOledTask) {
@@ -191,9 +210,15 @@ void loop()
         display.print("I: ");
         display.print(current);
 
-        display.setCursor(0, 54);
-        display.print("Current: ");
-        display.print(targetCurrent);
+        if (currentSettingPage == SETTING_PAGE_CURRENT) {
+            display.setCursor(0, 54);
+            display.print("Current: ");
+            display.print(targetCurrent);
+        } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
+            display.setCursor(0, 54);
+            display.print("Cutoff: ");
+            display.print(cutoffVoltage);
+        }
 
         display.display();
 
