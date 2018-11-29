@@ -127,13 +127,33 @@ enum runningStates {
     RUNNING_STATE_LAST
 };
 
+enum inputStates {
+    INPUT_STATE_NO_INPUT,
+    INPUT_STATE_OK,
+    INPUT_STATE_THRESHOLD_REACHED
+};
+
 int currentSettingPage = SETTING_PAGE_CURRENT;
 int currentRunningState = RUNNING_STATE_IDLE;
+int inputState = INPUT_STATE_NO_INPUT;
+
 float currentTemperature = 0.0f;
 
 void loop()
 {
     processVolatge();
+
+    if (getFilteredV() < 0.5f) {
+        inputState = INPUT_STATE_NO_INPUT;
+    }
+
+    if (inputState == INPUT_STATE_NO_INPUT && getFilteredV() >= 0.5f) {
+        inputState = INPUT_STATE_OK;
+    }
+
+    if (inputState == INPUT_STATE_OK && currentRunningState == RUNNING_STATE_DISCHARGE && getFilteredV() < cutoffVoltage) {
+        inputState == INPUT_STATE_THRESHOLD_REACHED;
+    }
 
     button0.loop();
     button1.loop();
@@ -221,10 +241,10 @@ void loop()
         mAh += current * (DELAY / 1000.f) * 1000 / 3600;
         power = voltage * current;
 
-        if (currentRunningState == RUNNING_STATE_IDLE || voltage < cutoffVoltage) {
-            stopPower();
-        } else {
+        if (inputState == INPUT_STATE_OK && currentRunningState == RUNNING_STATE_DISCHARGE) {
             setPower(outputCandidate);
+        } else {
+            stopPower();
         }
 
         nextPidTask = millis() + DELAY;
