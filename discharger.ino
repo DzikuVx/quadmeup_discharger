@@ -152,7 +152,7 @@ void loop()
     }
 
     if (inputState == INPUT_STATE_OK && currentRunningState == RUNNING_STATE_DISCHARGE && getFilteredV() < cutoffVoltage) {
-        inputState == INPUT_STATE_THRESHOLD_REACHED;
+        inputState = INPUT_STATE_THRESHOLD_REACHED;
     }
 
     button0.loop();
