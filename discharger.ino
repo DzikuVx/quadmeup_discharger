@@ -17,7 +17,7 @@
 
 #define TARGET_CURRENT 0.2f
 
-PIDController pidController(15, 2, 0, 0);
+PIDController pidController(15, 3, 0, 0);
 Adafruit_SSD1306 display(OLED_RESET);
 
 Tactile button0(8);  // left
@@ -184,6 +184,12 @@ void loop()
         currentRunningState++;
         if (currentRunningState == RUNNING_STATE_LAST) {
             currentRunningState = RUNNING_STATE_IDLE;
+        }
+        if (currentRunningState == RUNNING_STATE_DISCHARGE) {
+            pidController.resetIterm();
+            joules = 0;
+            Wh = 0;
+            mAh = 0;
         }
     }
 
