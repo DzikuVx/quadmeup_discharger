@@ -87,6 +87,9 @@ void setup()
 }
 
 float joules = 0;
+float mAh = 0;
+float Wh = 0;
+float power = 0;
 
 float getVin(float vout, float r1, float r2) {
     return (vout * (r1 + r2)) / r2;
@@ -208,6 +211,9 @@ void loop()
         int outputCandidate = pidController.compute(current, millis());
 
         joules += (voltage * current) * (DELAY / 1000.f);
+        Wh = joules / 3600.0f;
+        mAh += current * (DELAY / 1000.f) * 1000 / 3600;
+        power = voltage * current;
 
         if (currentRunningState == RUNNING_STATE_IDLE || voltage < cutoffVoltage) {
             stopPower();
@@ -244,15 +250,26 @@ void loop()
         display.print("I: ");
         display.print(current);
 
-        display.setCursor(0, 12);
+        display.setCursor(0, 10);
         display.print("T: ");
         display.print(currentTemperature);
 
+        display.setCursor(64, 10);
+        display.print("P: ");
+        display.print(power);
+
+        display.setCursor(0, 22);
+        display.print("Wh: ");
+        display.print(Wh);
+        display.setCursor(0, 32);
+        display.print("mAh: ");
+        display.print(mAh);
+
         if (currentRunningState == RUNNING_STATE_IDLE) {
-            display.setCursor(48, 24);
+            display.setCursor(48, 44);
             display.print("IDLE");
         } else if (currentRunningState == RUNNING_STATE_DISCHARGE) {
-            display.setCursor(16, 24);
+            display.setCursor(16, 44);
             display.print("-- DISCHARGE --");
         }
 
