@@ -5,6 +5,7 @@
 #include "tactile.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <EEPROM.h>
 
 #define ADC_PIN A0
 #define OUTPUT_PIN 10
@@ -15,6 +16,10 @@
 #define OLED_RESET 4
 #define ONE_WIRE_BUS 2
 #define DEFAULT_VOLTAGE_SCALE (3150.0f + 1000.0f) / 1000.0f
+#define MAX_VOLTAGE_SCALE 5.0f
+#define MIN_VOLTAGE_SCALE 1.0f
+
+#define EEPROM_ADDRESS_VOLTAGE_CALIBRATION 0
 
 #define TARGET_CURRENT 0.2f
 
@@ -28,6 +33,24 @@ Tactile button3(6);  // Start/Stop
 
 OneWire oneWire(ONE_WIRE_BUS); 
 DallasTemperature sensors(&oneWire);
+
+template <class T> int EEPROM_writeAnything(int ee, const T& value)
+{
+   const byte* p = (const byte*)(const void*)&value;
+   int i;
+   for (i = 0; i < sizeof(value); i++)
+       EEPROM.write(ee++, *p++);
+   return i;
+}
+
+template <class T> int EEPROM_readAnything(int ee, T& value)
+{
+   byte* p = (byte*)(void*)&value;
+   int i;
+   for (i = 0; i < sizeof(value); i++)
+       *p++ = EEPROM.read(ee++);
+   return i;
+}
 
 int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 {
@@ -64,6 +87,11 @@ void stopPower() {
     analogWrite(OUTPUT_PIN, 0);
 }
 
+void eepromStoreVoltageScale(void) {
+    int32_t tmp = voltageScale * 1000;
+    EEPROM_writeAnything(EEPROM_ADDRESS_VOLTAGE_CALIBRATION, tmp);
+}
+
 void setup()
 {
     button0.start();
@@ -87,7 +115,14 @@ void setup()
     display.clearDisplay();
     display.display();
 
-    voltageScale = DEFAULT_VOLTAGE_SCALE;
+    int32_t tmp;
+    EEPROM_readAnything(EEPROM_ADDRESS_VOLTAGE_CALIBRATION, tmp);
+    voltageScale = tmp / 1000.0f;
+
+    if (voltageScale < MIN_VOLTAGE_SCALE || voltageScale > MAX_VOLTAGE_SCALE) {
+        voltageScale = DEFAULT_VOLTAGE_SCALE;
+        eepromStoreVoltageScale();
+    }
 }
 
 float joules = 0;
@@ -183,9 +218,10 @@ void loop()
             }
         } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
             voltageScale -= 0.01f;
-            if (voltageScale < 1.0f) {
-                voltageScale = 1.0f;
+            if (voltageScale < MIN_VOLTAGE_SCALE) {
+                voltageScale = MIN_VOLTAGE_SCALE;
             }
+            eepromStoreVoltageScale();
         }
     }
 
@@ -202,9 +238,10 @@ void loop()
             }
         } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
             voltageScale += 0.01f;
-            if (voltageScale > 5.0f) {
-                voltageScale = 5.0f;
+            if (voltageScale > MAX_VOLTAGE_SCALE) {
+                voltageScale = MAX_VOLTAGE_SCALE;
             }
+            eepromStoreVoltageScale();
         }
     }
 
