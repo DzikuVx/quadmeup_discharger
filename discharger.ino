@@ -11,7 +11,11 @@
 #define OUTPUT_PIN 10
 #define LOAD_RESISTANCE 2.5f
 #define MAX_VOLTAGE 20.0f
+#define MIN_VOLTAGE 0.5f
+#define DEFAULT_VOLTAGE 3.0f
 #define MAX_CURRENT MAX_VOLTAGE / LOAD_RESISTANCE
+#define MIN_CURRENT 0.1f
+#define DEFAULT_CURRENT 1.0f
 #define DELAY 500
 #define OLED_RESET 4
 #define ONE_WIRE_BUS 2
@@ -20,6 +24,8 @@
 #define MIN_VOLTAGE_SCALE 1.0f
 
 #define EEPROM_ADDRESS_VOLTAGE_CALIBRATION 0
+#define EEPROM_ADDRESS_CURRENT 4
+#define EEPROM_ADDRESS_CUTOFF 8
 
 #define TARGET_CURRENT 0.2f
 
@@ -69,8 +75,8 @@ int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 }
 
 uint8_t outputPower = 0;
-float targetCurrent = 0.2f; //We begin with target o 0A
-float cutoffVoltage = 3.0f;
+float targetCurrent = 0;
+float cutoffVoltage = 0;
 float voltageScale = 0;
 
 void setPower(uint8_t power) {
@@ -90,6 +96,16 @@ void stopPower() {
 void eepromStoreVoltageScale(void) {
     int32_t tmp = voltageScale * 1000;
     EEPROM_writeAnything(EEPROM_ADDRESS_VOLTAGE_CALIBRATION, tmp);
+}
+
+void eepromStoreCurrent(void) {
+    int32_t tmp = targetCurrent * 1000;
+    EEPROM_writeAnything(EEPROM_ADDRESS_CURRENT, tmp);
+}
+
+void eepromStoreCutoff(void) {
+    int32_t tmp = cutoffVoltage * 1000;
+    EEPROM_writeAnything(EEPROM_ADDRESS_CUTOFF, tmp);
 }
 
 void setup()
@@ -122,6 +138,22 @@ void setup()
     if (voltageScale < MIN_VOLTAGE_SCALE || voltageScale > MAX_VOLTAGE_SCALE) {
         voltageScale = DEFAULT_VOLTAGE_SCALE;
         eepromStoreVoltageScale();
+    }
+
+    EEPROM_readAnything(EEPROM_ADDRESS_CURRENT, tmp);
+    targetCurrent = tmp / 1000.0f;
+
+    if (targetCurrent < MIN_CURRENT || targetCurrent > MAX_CURRENT) {
+        targetCurrent = DEFAULT_CURRENT;
+        eepromStoreCurrent();
+    }
+
+    EEPROM_readAnything(EEPROM_ADDRESS_CUTOFF, tmp);
+    cutoffVoltage = tmp / 1000.0f;
+
+    if (cutoffVoltage < MIN_VOLTAGE || cutoffVoltage > MAX_VOLTAGE) {
+        cutoffVoltage = DEFAULT_VOLTAGE;
+        eepromStoreCutoff();
     }
 }
 
@@ -208,14 +240,16 @@ void loop()
 
         if (currentSettingPage == SETTING_PAGE_CURRENT) {
             targetCurrent -= 0.1f;
-            if (targetCurrent < 0) {
-                targetCurrent = 0;
+            if (targetCurrent < 0.1f) {
+                targetCurrent = 0.1f;
             }
+            eepromStoreCurrent();
         } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
             cutoffVoltage -= 0.1f;
-            if (cutoffVoltage < 0.5) {
-                cutoffVoltage = 0.5;
+            if (cutoffVoltage < 0.5f) {
+                cutoffVoltage = 0.5f;
             }
+            eepromStoreCutoff();
         } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
             voltageScale -= 0.01f;
             if (voltageScale < MIN_VOLTAGE_SCALE) {
@@ -231,11 +265,13 @@ void loop()
             if (targetCurrent > MAX_CURRENT) {
                 targetCurrent = MAX_CURRENT;
             }
+            eepromStoreCurrent();
         } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
             cutoffVoltage += 0.1f;
             if (cutoffVoltage > MAX_VOLTAGE) {
                 cutoffVoltage = MAX_VOLTAGE;
             }
+            eepromStoreCutoff();
         } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
             voltageScale += 0.01f;
             if (voltageScale > MAX_VOLTAGE_SCALE) {
