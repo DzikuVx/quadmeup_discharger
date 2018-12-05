@@ -14,6 +14,7 @@
 #define DELAY 500
 #define OLED_RESET 4
 #define ONE_WIRE_BUS 2
+#define DEFAULT_VOLTAGE_SCALE (3150.0f + 1000.0f) / 1000.0f
 
 #define TARGET_CURRENT 0.2f
 
@@ -47,6 +48,7 @@ int32_t smooth(uint32_t data, float filterVal, float smoothedVal)
 uint8_t outputPower = 0;
 float targetCurrent = 0.2f; //We begin with target o 0A
 float cutoffVoltage = 3.0f;
+float voltageScale = 0;
 
 void setPower(uint8_t power) {
     outputPower = power;
@@ -84,6 +86,8 @@ void setup()
     display.setTextColor(WHITE);
     display.clearDisplay();
     display.display();
+
+    voltageScale = DEFAULT_VOLTAGE_SCALE;
 }
 
 float joules = 0;
@@ -91,8 +95,8 @@ float mAh = 0;
 float Wh = 0;
 float power = 0;
 
-float getVin(float vout, float r1, float r2) {
-    return (vout * (r1 + r2)) / r2;
+float getVin(float vout) {
+    return vout * voltageScale;
 }
 
 float currentVoltage = 0.0f;
@@ -108,7 +112,7 @@ void processVolatge() {
 
     filteredAdc = smooth(adcOutput, 0.99, filteredAdc);
 
-    currentVoltage = getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f, 3150, 1000);
+    currentVoltage = getVin(map(filteredAdc, 0, 1023, 0, 5000) / 1000.f);
 }
 
 float getFilteredV() {
@@ -118,6 +122,7 @@ float getFilteredV() {
 enum settingPages {
     SETTING_PAGE_CURRENT = 0,
     SETTING_PAGE_CUTOFF,
+    SETTING_PAGE_VOLTAGE_SCALE,
     SETTING_PAGE_LAST
 };
 
@@ -176,6 +181,11 @@ void loop()
             if (cutoffVoltage < 0.5) {
                 cutoffVoltage = 0.5;
             }
+        } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
+            voltageScale -= 0.01f;
+            if (voltageScale < 1.0f) {
+                voltageScale = 1.0f;
+            }
         }
     }
 
@@ -189,6 +199,11 @@ void loop()
             cutoffVoltage += 0.1f;
             if (cutoffVoltage > MAX_VOLTAGE) {
                 cutoffVoltage = MAX_VOLTAGE;
+            }
+        } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
+            voltageScale += 0.01f;
+            if (voltageScale > 5.0f) {
+                voltageScale = 5.0f;
             }
         }
     }
@@ -307,6 +322,10 @@ void loop()
             display.setCursor(0, 54);
             display.print("Cutoff: ");
             display.print(cutoffVoltage);
+        } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
+            display.setCursor(0, 54);
+            display.print("V scale: ");
+            display.print(voltageScale);
         }
 
         display.display();
