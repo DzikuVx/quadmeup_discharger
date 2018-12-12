@@ -16,6 +16,12 @@ PIDController::PIDController(float pGain, float iGain, float dGain, float ffGain
     _previousError = 0;
 
     _outputThreshold = NULL;
+    _isNegativeFeedback = false;
+}
+
+void PIDController::setIsNegativeFeedback(bool value)
+{
+    _isNegativeFeedback = value;
 }
 
 void PIDController::setOutputThreshold(int value)
@@ -51,30 +57,32 @@ int PIDController::compute(float measurement, unsigned long timestamp)
     float error = _setpoint - measurement;
 
     //Do not run update if pid loop is called too often
-    if (timestamp - _prevExecutionMillis < 1000) {
-        float dT = (timestamp - _prevExecutionMillis) / 1000.0f;
+    float dT = (timestamp - _prevExecutionMillis) / 1000.0f;
 
-        //pTerm
-        _pTerm = error * _pGain;
-        output += (int) _pTerm;
+    //pTerm
+    _pTerm = error * _pGain;
+    output += (int) _pTerm;
 
-        //Apply and constrain iTerm
-        _iTerm += error * _iGain * dT;
-        _iTerm = constrain(_iTerm, _minIterm, _maxIterm);
-        output += (int) _iTerm;
+    //Apply and constrain iTerm
+    _iTerm += error * _iGain * dT;
+    _iTerm = constrain(_iTerm, _minIterm, _maxIterm);
+    output += (int) _iTerm;
 
-        //dTerm
-        _dTerm = (float)(error - _previousError) * _dGain * dT;
-        output += _dTerm;
+    //dTerm
+    _dTerm = (float)(error - _previousError) * _dGain * dT;
+    output += _dTerm;
 
-        //ffTerm
-        _ffTerm = (float) _setpoint * _ffGain;
-        output += _ffTerm;
-    }
+    //ffTerm
+    _ffTerm = (float) _setpoint * _ffGain;
+    output += _ffTerm;
 
     _previousError = error;
     _previousMeasurement = measurement;
     _prevExecutionMillis = timestamp;
+
+    if (_isNegativeFeedback) {
+        output = output * -1;
+    }
 
     if (_outputThreshold != NULL && output < _outputThreshold) {
         output = _min;

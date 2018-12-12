@@ -16,6 +16,7 @@ class PIDController
     void setItermProperties(float minIterm, float maxIterm);
     void setFfGain(float ffGain);
     void setOutputThreshold(int value);
+    void setIsNegativeFeedback(bool value);
 
   private:
     float _pGain;
@@ -33,6 +34,7 @@ class PIDController
     int _min;
     int _max;
     int _outputThreshold;
+    bool _isNegativeFeedback;
     float _previousError;
     float _previousMeasurement;
     unsigned long _prevExecutionMillis;

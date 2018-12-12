@@ -131,8 +131,9 @@ void setup()
 
     temperatureController.setItermProperties(-50, 50);
     temperatureController.setProperties(0, 255);
-    temperatureController.setOutputThreshold(100);
+    temperatureController.setOutputThreshold(128);
     temperatureController.setSetpoint(40);
+    temperatureController.setIsNegativeFeedback(true);
 
     display.begin(&Adafruit128x64, 0x3C, 4);
     display.setFont(Adafruit5x7);
@@ -322,14 +323,7 @@ void loop()
 
         int fan = temperatureController.compute(currentTemperature, millis());
 
-        Serial.println(fan);
-
-        // if (currentTemperature > 40 || currentTemperature < 0) {
-        //     analogWrite(FAN_PIN, 255);
-        // } else {
-        //     analogWrite(FAN_PIN, 0);
-        // }
-
+        analogWrite(FAN_PIN, fan);
     }
 
     if (millis() > nextPidTask) {
