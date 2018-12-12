@@ -31,6 +31,7 @@
 #define TARGET_CURRENT 0.2f
 
 PIDController pidController(15, 3, 0, 0);
+PIDController temperatureController(20, 10, 0, 0);
 Adafruit_SSD1306 display(OLED_RESET);
 
 Tactile button0(9);  // left
@@ -126,6 +127,11 @@ void setup()
     pidController.setItermProperties(-20, 20);
     pidController.setSetpoint(targetCurrent);
     setPower(0);
+
+    temperatureController.setItermProperties(-50, 50);
+    temperatureController.setProperties(0, 255);
+    temperatureController.setOutputThreshold(100);
+    temperatureController.setSetpoint(40);
 
     display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
     display.setTextSize(1);
@@ -310,7 +316,18 @@ void loop()
         sensors.requestTemperatures();
         currentTemperature = sensors.getTempCByIndex(0);
 
-        nextTemperatureTask = millis() + 1000;
+        nextTemperatureTask = millis() + 2000;
+
+        int fan = temperatureController.compute(currentTemperature, millis());
+
+        Serial.println(fan);
+
+        // if (currentTemperature > 40 || currentTemperature < 0) {
+        //     analogWrite(FAN_PIN, 255);
+        // } else {
+        //     analogWrite(FAN_PIN, 0);
+        // }
+
     }
 
     if (millis() > nextPidTask) {
@@ -340,19 +357,8 @@ void loop()
         nextPidTask = millis() + DELAY;
     }
 
-    static uint32_t nextSerialTask = millis();
-
-    if (millis() > nextSerialTask) {
-
-        // Serial.print(voltageAdc.getRawValue());
-        // Serial.print(" : ");
-        // Serial.println(voltageAdc.getValue());
-
-        nextSerialTask = millis() + 200;
-    }
-
     static uint32_t nextOledTask = millis();
-
+  
     if (millis() > nextOledTask) {
 
         display.clearDisplay();

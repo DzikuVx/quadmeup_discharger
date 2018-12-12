@@ -14,6 +14,13 @@ PIDController::PIDController(float pGain, float iGain, float dGain, float ffGain
     _min = 0;
     _max = 255;
     _previousError = 0;
+
+    _outputThreshold = NULL;
+}
+
+void PIDController::setOutputThreshold(int value)
+{
+    _outputThreshold = value;
 }
 
 void PIDController::setProperties(int minOutput, int maxOutput)
@@ -68,6 +75,10 @@ int PIDController::compute(float measurement, unsigned long timestamp)
     _previousError = error;
     _previousMeasurement = measurement;
     _prevExecutionMillis = timestamp;
+
+    if (_outputThreshold != NULL && output < _outputThreshold) {
+        output = _min;
+    }
 
     return constrain(output, _min, _max);
 }
