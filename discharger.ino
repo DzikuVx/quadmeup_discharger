@@ -1,7 +1,7 @@
 #include "Arduino.h"
 #include "pid.h"
-#include <Adafruit_SSD1306.h>
-#include <Wire.h>
+#include "SSD1306Ascii.h"
+#include "SSD1306AsciiAvrI2c.h"
 #include "tactile.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
@@ -32,7 +32,8 @@
 
 PIDController pidController(15, 3, 0, 0);
 PIDController temperatureController(20, 10, 0, 0);
-Adafruit_SSD1306 display(OLED_RESET);
+
+SSD1306AsciiAvrI2c display;
 
 Tactile button0(9);  // left
 Tactile button1(8);  // right
@@ -133,11 +134,9 @@ void setup()
     temperatureController.setOutputThreshold(100);
     temperatureController.setSetpoint(40);
 
-    display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-    display.clearDisplay();
-    display.display();
+    display.begin(&Adafruit128x64, 0x3C, 4);
+    display.setFont(Adafruit5x7);
+    display.clear();
 
     int32_t tmp;
     EEPROM_readAnything(EEPROM_ADDRESS_VOLTAGE_CALIBRATION, tmp);
@@ -216,6 +215,7 @@ enum inputStates {
 int currentSettingPage = SETTING_PAGE_CURRENT;
 int currentRunningState = RUNNING_STATE_IDLE;
 int inputState = INPUT_STATE_NO_INPUT;
+bool doFullOledRefresh = false;
 
 float currentTemperature = 0.0f;
 
@@ -290,6 +290,7 @@ void loop()
     }
 
     if (button2.getState() == TACTILE_STATE_SHORT_PRESS) {
+        doFullOledRefresh = true;
         currentSettingPage++;
         if (currentSettingPage == SETTING_PAGE_LAST) {
             currentSettingPage = SETTING_PAGE_CURRENT;
@@ -297,6 +298,7 @@ void loop()
     }
 
     if (button3.getState() == TACTILE_STATE_LONG_PRESS) {
+        doFullOledRefresh = true;
         currentRunningState++;
         if (currentRunningState == RUNNING_STATE_LAST) {
             currentRunningState = RUNNING_STATE_IDLE;
@@ -361,55 +363,64 @@ void loop()
   
     if (millis() > nextOledTask) {
 
-        display.clearDisplay();
+        if (doFullOledRefresh) {
+            display.clear();
+            doFullOledRefresh = false;
+        } 
 
-        display.setTextSize(1);
         display.setCursor(0, 0);
         display.print("Vin: ");
         display.print(voltage);
+        display.print(" ");
 
         display.setCursor(64, 0);
         display.print("I: ");
         display.print(current);
+        display.print(" ");
 
-        display.setCursor(0, 10);
+        display.setCursor(0, 1);
         display.print("T: ");
         display.print(currentTemperature);
+        display.print(" ");
 
-        display.setCursor(64, 10);
+        display.setCursor(64, 1);
         display.print("P: ");
         display.print(power);
+        display.print(" ");
 
-        display.setCursor(0, 22);
+        display.setCursor(0, 2);
         display.print("Wh: ");
         display.print(Wh);
-        display.setCursor(0, 32);
+        display.print("   ");
+        display.setCursor(0, 3);
         display.print("mAh: ");
         display.print(mAh);
+        display.print("   ");
 
         if (currentRunningState == RUNNING_STATE_IDLE) {
-            display.setCursor(48, 44);
+            display.setCursor(48, 5);
             display.print("IDLE");
         } else if (currentRunningState == RUNNING_STATE_DISCHARGE) {
-            display.setCursor(16, 44);
+            display.setCursor(16, 5);
             display.print("-- DISCHARGE --");
         }
 
         if (currentSettingPage == SETTING_PAGE_CURRENT) {
-            display.setCursor(0, 54);
+            display.setCursor(0, 7);
             display.print("Current: ");
             display.print(targetCurrent);
+            display.clearToEOL();
         } else if (currentSettingPage == SETTING_PAGE_CUTOFF) {
-            display.setCursor(0, 54);
+            display.setCursor(0, 7);
             display.print("Cutoff: ");
             display.print(cutoffVoltage);
+            display.clearToEOL();
         } else if (currentSettingPage == SETTING_PAGE_VOLTAGE_SCALE) {
-            display.setCursor(0, 54);
+            display.setCursor(0, 7);
             display.print("V scale: ");
             display.print(voltageScale);
+            display.clearToEOL();
         }
-
-        display.display();
 
         nextOledTask = millis() + 150;
     }

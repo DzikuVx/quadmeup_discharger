@@ -20,6 +20,6 @@
 
 # Dependencies
 
-* [Adafruit SSD1306 OLED Library](https://github.com/adafruit/Adafruit_SSD1306)
+* [SSD1306Ascii Library](https://github.com/greiman/SSD1306Ascii)
 * [OneWire Library](https://github.com/PaulStoffregen/OneWire)
 * [DallasTemperature Library](https://github.com/milesburton/Arduino-Temperature-Control-Library)
