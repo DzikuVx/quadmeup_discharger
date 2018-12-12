@@ -9,6 +9,7 @@
 
 #define ADC_PIN A0
 #define OUTPUT_PIN 10
+#define FAN_PIN 11
 #define LOAD_RESISTANCE 2.5f
 #define MAX_VOLTAGE 20.0f
 #define MIN_VOLTAGE 0.5f
@@ -32,8 +33,8 @@
 PIDController pidController(15, 3, 0, 0);
 Adafruit_SSD1306 display(OLED_RESET);
 
-Tactile button0(8);  // left
-Tactile button1(9);  // right
+Tactile button0(9);  // left
+Tactile button1(8);  // right
 Tactile button2(7);  // setting
 Tactile button3(6);  // Start/Stop
 
@@ -113,12 +114,13 @@ void setup()
     button0.start();
     button1.start();
     button2.start();
-
     button3.start();
 
     pinMode(ADC_PIN, INPUT);
     pinMode(OUTPUT_PIN, OUTPUT);
+    pinMode(FAN_PIN, OUTPUT);
     digitalWrite(OUTPUT_PIN, LOW);
+    digitalWrite(FAN_PIN, LOW);
     Serial.begin(115200);
 
     pidController.setItermProperties(-20, 20);
