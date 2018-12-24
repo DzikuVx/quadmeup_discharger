@@ -1,8 +1,8 @@
 #include "Arduino.h"
-#include "pid.h"
+#include "QmuPid.h"
 #include "SSD1306Ascii.h"
 #include "SSD1306AsciiAvrI2c.h"
-#include "tactile.h"
+#include "QmuTactile.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
 #include <EEPROM.h>
@@ -30,15 +30,15 @@
 
 #define TARGET_CURRENT 0.2f
 
-PIDController pidController(15, 3, 0, 0);
-PIDController temperatureController(20, 10, 0, 0);
+QmuPid pidController(15, 3, 0, 0);
+QmuPid temperatureController(20, 10, 0, 0);
 
 SSD1306AsciiAvrI2c display;
 
-Tactile button0(9);  // left
-Tactile button1(8);  // right
-Tactile button2(7);  // setting
-Tactile button3(6);  // Start/Stop
+QmuTactile button0(9);  // left
+QmuTactile button1(8);  // right
+QmuTactile button2(7);  // setting
+QmuTactile button3(6);  // Start/Stop
 
 OneWire oneWire(ONE_WIRE_BUS); 
 DallasTemperature sensors(&oneWire);

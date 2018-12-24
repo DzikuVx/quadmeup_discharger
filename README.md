@@ -20,6 +20,8 @@
 
 # Dependencies
 
+* [QmuTactile library](https://github.com/DzikuVx/QmuTactile)
+* [QmuPid library](https://github.com/DzikuVx/QmuPid)
 * [SSD1306Ascii Library](https://github.com/greiman/SSD1306Ascii)
 * [OneWire Library](https://github.com/PaulStoffregen/OneWire)
 * [DallasTemperature Library](https://github.com/milesburton/Arduino-Temperature-Control-Library)
