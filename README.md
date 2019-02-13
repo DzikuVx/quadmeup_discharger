@@ -12,6 +12,7 @@
 * 1kOhm resistor
 * 3.3kOhm resistor
 * 4.7kOhm resistor
+* 1N4148 diode or other similar
 * some cables, plugs, DIY equipment 
 
 # Diagram
